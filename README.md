@@ -27,6 +27,7 @@ k-eff = 1.308664 (reflected PWR-like slab)
 
 ## Example Input File
 
+```code
 geometry:
   type: 1D_slab
   length_cm: 200.0
@@ -63,6 +64,7 @@ materials:
     sigma_s12: 0.0460
     nu_sigma_f1: 0.0
     nu_sigma_f2: 0.0
+```
 
 ## Validation
 
@@ -75,6 +77,7 @@ python benchmarks/bare_slab/run_benchmark.py
 
 ## Project Structure
 
+```code
 PyReactor/
 ├── pyreactor/
 │   ├── materials.py     # Material cross-section library
@@ -85,6 +88,7 @@ PyReactor/
 ├── input/               # Example input files
 ├── main.py              # Entry point
 └── requirements.txt
+```
 
 ## Roadmap
 
