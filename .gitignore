@@ -1,0 +1,19 @@
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+env/
+
+# VS Code settings
+.vscode/
+
+# Output files (plots saved as PNG)
+*.png
+*.pdf
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/

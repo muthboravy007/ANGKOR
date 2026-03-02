@@ -1,0 +1,41 @@
+# PyReactor Input File
+# Relected PWR-like slab reactor 
+
+geometry: 
+  type: 1D_slab
+  length_cm: 200.0
+  mesh_points: 200
+
+regions:
+  - name: left_reflector
+    start: 0.0
+    end: 20.0
+    material: water
+  
+  - name: fuel
+    start: 20.0
+    end: 180.0
+    material: uo2_fuel
+  - name: right_reflector
+    start: 180.0
+    end: 200.0
+    material: water 
+
+materials:
+  uo2_fuel:
+    D1: 1.40
+    D2: 0.37
+    sigma_a1: 0.0095
+    sigma_a2: 0.0820
+    sigma_s12: 0.0210
+    nu_sigma_f1: 0.0060
+    nu_sigma_f2: 0.1350
+
+  water:
+    D1: 1.13
+    D2: 0.16
+    sigma_a1: 0.0003
+    sigma_a2: 0.0210
+    sigma_s12: 0.0460
+    nu_sigma_f1: 0.0
+    nu_sigma_f2: 0.0
