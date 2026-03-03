@@ -78,11 +78,7 @@ python benchmarks/bare_slab/run_benchmark.py
 
 ## Project Structure
 
-<<<<<<< HEAD
-```code
-=======
 ```code 
->>>>>>> c590e39 (Add MCNP6.2 benchmark: moderated UO2 slab, 1464 pcm vs diffusion theory)
 PyReactor/
 ├── pyreactor/
 │   ├── materials.py     # Material cross-section library
@@ -93,11 +89,7 @@ PyReactor/
 ├── input/               # Example input files
 ├── main.py              # Entry point
 └── requirements.txt
-<<<<<<< HEAD
 ```
-=======
-``` 
->>>>>>> c590e39 (Add MCNP6.2 benchmark: moderated UO2 slab, 1464 pcm vs diffusion theory)
 
 ## Roadmap
 
