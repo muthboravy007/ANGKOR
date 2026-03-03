@@ -71,7 +71,7 @@ materials:
 | Benchmark | Method | k-eff (Analytical) | k-eff (PyReactor) | Error |
 |---|---|---|---|---|
 | Bare homogeneous slab | 2-group analytical | 1.305446 | 1.305447 | 0 pcm |
-| Moderated slab (MCNP 6.2) | 1.30866 | 1.32811 | 1,464 pcm | ⚠️ Expected |
+| Moderated slab | (MCNP 6.2) | 1.30866 | 1.32811 | 1,464 pcm | Expected |
 
 Run benchmark:
 python benchmarks/bare_slab/run_benchmark.py
