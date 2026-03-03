@@ -107,5 +107,5 @@ Built as an open-source alternative to commercial deterministic
 reactor physics codes such as CASMO/SIMULATE.
 
 ## License
-
-MUTH_Boravy (ITC) License — free to use, modify, and distribute.
+MIT License
+free to use, modify, and distribute.
