@@ -71,13 +71,18 @@ materials:
 | Benchmark | Method | k-eff (Analytical) | k-eff (PyReactor) | Error |
 |---|---|---|---|---|
 | Bare homogeneous slab | 2-group analytical | 1.305446 | 1.305447 | 0 pcm |
+| Moderated slab (MCNP 6.2) | 1.30866 | 1.32811 | 1,464 pcm | ⚠️ Expected |
 
 Run benchmark:
 python benchmarks/bare_slab/run_benchmark.py
 
 ## Project Structure
 
+<<<<<<< HEAD
 ```code
+=======
+```code 
+>>>>>>> c590e39 (Add MCNP6.2 benchmark: moderated UO2 slab, 1464 pcm vs diffusion theory)
 PyReactor/
 ├── pyreactor/
 │   ├── materials.py     # Material cross-section library
@@ -88,7 +93,11 @@ PyReactor/
 ├── input/               # Example input files
 ├── main.py              # Entry point
 └── requirements.txt
+<<<<<<< HEAD
 ```
+=======
+``` 
+>>>>>>> c590e39 (Add MCNP6.2 benchmark: moderated UO2 slab, 1464 pcm vs diffusion theory)
 
 ## Roadmap
 
