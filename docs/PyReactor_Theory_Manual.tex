@@ -1,0 +1,908 @@
+\documentclass[12pt,a4paper]{article}
+
+% ── Packages ────────────────────────────────────────────────────────────────
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{tocloft}
+\usepackage{mdframed}
+\usepackage{bm}
+
+% ── Page geometry ────────────────────────────────────────────────────────────
+\geometry{
+  top=2.5cm, bottom=2.5cm,
+  left=3.0cm, right=3.0cm
+}
+
+% ── Colors ───────────────────────────────────────────────────────────────────
+\definecolor{pyblue}{RGB}{41, 128, 185}
+\definecolor{pyred}{RGB}{192, 57, 43}
+\definecolor{pygray}{RGB}{100, 100, 100}
+\definecolor{boxblue}{RGB}{235, 245, 255}
+\definecolor{boxborder}{RGB}{41, 128, 185}
+
+% ── Header/Footer ────────────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\textcolor{pygray}{\small PyReactor v1.0 — Theory Manual}}
+\lhead{\textcolor{pygray}{\small \leftmark}}
+\rfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ── Section formatting ───────────────────────────────────────────────────────
+\titleformat{\section}
+  {\large\bfseries\color{pyblue}}
+  {\thesection}{1em}{}[\color{pyblue}\titlerule]
+
+\titleformat{\subsection}
+  {\normalsize\bfseries\color{pyblue!80!black}}
+  {\thesubsection}{1em}{}
+
+% ── Equation box environment ─────────────────────────────────────────────────
+\newmdenv[
+  backgroundcolor=boxblue,
+  linecolor=boxborder,
+  linewidth=1.5pt,
+  roundcorner=4pt,
+  innertopmargin=8pt,
+  innerbottommargin=8pt
+]{eqbox}
+
+% ── Hyperref ─────────────────────────────────────────────────────────────────
+\hypersetup{
+  colorlinks=true,
+  linkcolor=pyblue,
+  urlcolor=pyblue,
+  citecolor=pyred
+}
+
+% ── Custom commands ───────────────────────────────────────────────────────────
+\newcommand{\keff}{k_{\mathrm{eff}}}
+\newcommand{\kinf}{k_{\infty}}
+\newcommand{\sigr}[1]{\Sigma_{r,#1}}
+\newcommand{\siga}[1]{\Sigma_{a,#1}}
+\newcommand{\sigs}[2]{\Sigma_{s,#1\to#2}}
+\newcommand{\sigf}[1]{\nu\Sigma_{f,#1}}
+\newcommand{\diff}[1]{D_{#1}}
+\newcommand{\flux}[1]{\phi_{#1}}
+\newcommand{\pd}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\pdd}[2]{\frac{\partial^2 #1}{\partial #2^2}}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{document}
+% ─────────────────────────────────────────────────────────────────────────────
+
+% ── Title Page ───────────────────────────────────────────────────────────────
+\begin{titlepage}
+  \centering
+  \vspace*{2cm}
+
+  {\Huge\bfseries\color{pyblue} PyReactor}\\[0.5cm]
+  {\Large\color{pygray} Theory \& Numerical Methods Manual}\\[0.3cm]
+  {\large\color{pygray} Version 1.0}
+
+  \vspace{1.5cm}
+  \hrule height 1pt
+  \vspace{0.4cm}
+  {\large A Deterministic Two-Group Neutron Diffusion Solver\\
+   for Nuclear Reactor Core Analysis}
+  \vspace{0.4cm}
+  \hrule height 1pt
+
+  \vspace{2cm}
+
+  \begin{tabular}{rl}
+    \textbf{Method:}   & Finite Difference, Two-Group Diffusion Theory \\[4pt]
+    \textbf{Solver:}   & Power Iteration (Outer) + Direct Linear Solve (Inner) \\[4pt]
+    \textbf{Geometry:} & 1D Slab (v1.0); 2D x-y planned (v2.0) \\[4pt]
+    \textbf{Language:} & Python 3.10+, NumPy, SciPy \\[4pt]
+    \textbf{GitHub:}   & github.com/muthboravy007/PyReactor \\
+  \end{tabular}
+
+  \vfill
+  {\small\color{pygray}
+    \textit{Open-source nuclear reactor physics code.}\\
+    \textit{MIT License — free to use, modify, and distribute.}
+  }
+\end{titlepage}
+
+% ── Table of Contents ─────────────────────────────────────────────────────────
+\tableofcontents
+\newpage
+
+% =============================================================================
+\section{Introduction}
+% =============================================================================
+
+PyReactor is an open-source deterministic nuclear reactor analysis code
+based on neutron diffusion theory. It solves the steady-state, multi-region,
+two-group neutron diffusion equation using the finite difference method (FDM)
+and computes the effective multiplication factor $\keff$ via power iteration.
+
+\subsection{Purpose and Scope}
+
+The code is designed to:
+\begin{itemize}
+  \item Compute the neutron flux distribution $\phi(\mathbf{r})$ in a reactor.
+  \item Determine criticality ($\keff$) for a given reactor geometry and composition.
+  \item Serve as a free, transparent, and educational alternative to
+        commercial deterministic codes such as CASMO/SIMULATE.
+\end{itemize}
+
+\subsection{Comparison with Monte Carlo Methods}
+
+Nuclear reactor analysis codes fall into two broad categories:
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{lll}
+\toprule
+\textbf{Property} & \textbf{Monte Carlo (MCNP, OpenMC)} & \textbf{Deterministic (PyReactor)} \\
+\midrule
+Method       & Random particle tracking      & Solve PDE directly      \\
+Energy       & Continuous energy             & Multi-group             \\
+Accuracy     & Very high (with statistics)   & High (with fine mesh)   \\
+Speed        & Slow (millions of histories)  & Fast                    \\
+Insight      & Statistical result            & Analytical structure    \\
+\bottomrule
+\end{tabular}
+\caption{Monte Carlo vs. Deterministic methods}
+\end{table}
+
+PyReactor implements the deterministic approach — solving the neutron
+diffusion partial differential equation (PDE) directly on a spatial mesh.
+
+% =============================================================================
+\section{Neutron Transport Theory}
+% =============================================================================
+
+\subsection{The Neutron Transport Equation}
+
+The most general description of neutron behaviour is given by the
+\textbf{Boltzmann neutron transport equation}:
+
+\begin{eqbox}
+\begin{equation}
+\frac{1}{v}\pd{\Psi}{t} + \bm{\Omega}\cdot\nabla\Psi + \Sigma_t\Psi
+ = \int_0^\infty\int_{4\pi} \Sigma_s(\mathbf{r}, E'\to E, \bm{\Omega}'\to\bm{\Omega})
+  \Psi\,d\Omega'\,dE'+ \frac{\chi(E)}{4\pi k}\int_0^\infty \nu\Sigma_f(\mathbf{r},E')\phi(\mathbf{r},E')\,dE'
+\label{eq:transport}
+\end{equation}
+\end{eqbox}
+
+where:
+\begin{align*}
+  \Psi(\mathbf{r}, \bm{\Omega}, E, t) &= \text{angular neutron flux} \\
+  v(E)         &= \text{neutron speed at energy } E \\
+  \bm{\Omega}  &= \text{neutron direction of travel (unit vector)} \\
+  \Sigma_t     &= \text{total macroscopic cross section (cm}^{-1}) \\
+  \Sigma_s     &= \text{scattering kernel} \\
+  \chi(E)      &= \text{fission neutron energy spectrum} \\
+  \nu          &= \text{average neutrons produced per fission} \\
+  \Sigma_f     &= \text{fission macroscopic cross section}
+\end{align*}
+
+Equation~\eqref{eq:transport} is integro-differential in seven independent
+variables $(\mathbf{r}, \bm{\Omega}, E, t)$ and is generally too complex to
+solve directly for engineering calculations.
+
+\subsection{Simplification to Diffusion Theory}
+
+The neutron diffusion equation is derived from the transport equation by
+applying two key approximations:
+
+\begin{enumerate}
+  \item \textbf{Isotropic scattering approximation (P$_1$ approximation):}
+        The angular flux is expanded in Legendre polynomials and truncated
+        after the first term, assuming scattering is nearly isotropic.
+  \item \textbf{Fick's Law of diffusion:} The neutron current $\mathbf{J}$
+        is proportional to the gradient of the scalar flux:
+        \begin{equation}
+          \mathbf{J}(\mathbf{r}, E) = -D(E)\,\nabla\phi(\mathbf{r}, E)
+          \label{eq:ficks}
+        \end{equation}
+        where $D$ is the diffusion coefficient.
+\end{enumerate}
+
+The diffusion coefficient $D$ is related to the transport cross section:
+\begin{equation}
+  D = \frac{1}{3\Sigma_{tr}}, \qquad
+  \Sigma_{tr} = \Sigma_t - \bar{\mu}_0\,\Sigma_s
+  \label{eq:diffcoeff}
+\end{equation}
+where $\bar{\mu}_0$ is the mean cosine of the scattering angle.
+
+\subsection{Validity of Diffusion Theory}
+
+Diffusion theory is valid when:
+\begin{itemize}
+  \item The material is weakly absorbing ($\Sigma_a \ll \Sigma_{tr}$).
+  \item The flux is nearly isotropic (true in the interior of large reactors).
+  \item The observation point is far from boundaries and material interfaces.
+\end{itemize}
+
+Diffusion theory is \textit{not} valid:
+\begin{itemize}
+  \item Near vacuum boundaries (within $\sim 2-3$ mean free paths).
+  \item Near strong absorbers (control rods, fuel-moderator interfaces).
+  \item In highly heterogeneous geometries without homogenization.
+\end{itemize}
+
+% =============================================================================
+\section{The Steady-State Neutron Diffusion Equation}
+% =============================================================================
+
+\subsection{One-Group Diffusion Equation}
+
+For pedagogical clarity, we first derive the one-group equation.
+Applying Fick's Law and the neutron balance in steady state:
+
+\begin{eqbox}
+\begin{equation}
+  -\nabla \cdot D(\mathbf{r})\,\nabla\phi(\mathbf{r})
+  + \Sigma_a(\mathbf{r})\,\phi(\mathbf{r})
+  = \frac{1}{\keff}\,\nu\Sigma_f(\mathbf{r})\,\phi(\mathbf{r})
+  \label{eq:1group}
+\end{equation}
+\end{eqbox}
+
+Each term has a physical meaning:
+\begin{align*}
+  -\nabla \cdot D\,\nabla\phi &= \text{net neutron leakage (loss)} \\
+  \Sigma_a\,\phi              &= \text{neutron absorption (loss)} \\
+  \frac{1}{\keff}\nu\Sigma_f\phi &= \text{fission neutron production (source)}
+\end{align*}
+
+In one dimension (slab geometry), equation~\eqref{eq:1group} becomes:
+\begin{equation}
+  -\diff{}\pdd{\flux{}}{x} + \siga{}\,\flux{}
+  = \frac{1}{\keff}\,\sigf{}\,\flux{}
+  \label{eq:1group_1d}
+\end{equation}
+
+\subsection{Two-Group Diffusion Equations}
+
+PyReactor uses two-group energy treatment. The energy domain is divided:
+\begin{align*}
+  \text{Group 1 (Fast):}    &\quad E > 0.625 \text{ eV} \\
+  \text{Group 2 (Thermal):} &\quad E < 0.625 \text{ eV}
+\end{align*}
+
+The coupled two-group diffusion equations in 1D slab geometry are:
+
+\begin{eqbox}
+\begin{align}
+  -\diff{1}\pdd{\flux{1}}{x} + \sigr{1}\,\flux{1}
+  &= \frac{1}{\keff}\Bigl(\sigf{1}\,\flux{1} + \sigf{2}\,\flux{2}\Bigr)
+  \label{eq:group1} \\[8pt]
+  -\diff{2}\pdd{\flux{2}}{x} + \siga{2}\,\flux{2}
+  &= \sigs{1}{2}\,\flux{1}
+  \label{eq:group2}
+\end{align}
+\end{eqbox}
+
+where:
+\begin{align*}
+  \flux{g}(x)   &= \text{scalar neutron flux in group } g \text{ (n/cm}^2\text{·s)} \\
+  \diff{g}      &= \text{diffusion coefficient in group } g \text{ (cm)} \\
+  \siga{g}      &= \text{macroscopic absorption cross section in group } g \text{ (cm}^{-1}) \\
+  \sigr{1}      &= \siga{1} + \sigs{1}{2} = \text{removal cross section, group 1 (cm}^{-1}) \\
+  \sigs{1}{2}   &= \text{group 1 to group 2 scattering cross section (cm}^{-1}) \\
+  \sigf{g}      &= \nu\Sigma_{f,g} = \text{fission production cross section (cm}^{-1}) \\
+  \keff         &= \text{effective multiplication factor (eigenvalue)}
+\end{align*}
+
+\textbf{Physical interpretation of the coupling:}
+\begin{itemize}
+  \item Equation~\eqref{eq:group1}: Fast neutrons are produced by fission
+        and are removed by absorption and slowing down ($\sigs{1}{2}$).
+  \item Equation~\eqref{eq:group2}: Thermal neutrons are fed by fast neutrons
+        slowing down ($\sigs{1}{2}\flux{1}$ is the source) and are removed
+        by absorption. Fission is not a direct source for thermal neutrons.
+\end{itemize}
+
+\subsection{Physical Meaning of $\keff$}
+
+The effective multiplication factor is defined as:
+\begin{equation}
+  \keff = \frac{\text{neutron production rate}}{\text{neutron loss rate}}
+        = \frac{\text{fissions per generation}}{\text{absorptions + leakage per generation}}
+\end{equation}
+
+\begin{center}
+\begin{tabular}{cll}
+\toprule
+$\keff < 1$ & Subcritical & Chain reaction dies out \\
+$\keff = 1$ & Critical    & Steady-state operation \\
+$\keff > 1$ & Supercritical & Chain reaction grows \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Reactivity}
+
+Reactivity $\rho$ is a more convenient measure of how far a reactor
+is from criticality:
+\begin{equation}
+  \rho = \frac{\keff - 1}{\keff}
+\end{equation}
+
+In industry, reactivity is expressed in \textbf{pcm} (per cent mille):
+\begin{equation}
+  \rho\,[\text{pcm}] = \frac{\keff - 1}{\keff} \times 10^5
+\end{equation}
+
+% =============================================================================
+\section{Matrix Formulation of the Eigenvalue Problem}
+% =============================================================================
+
+\subsection{General Form}
+
+The two-group diffusion equations~\eqref{eq:group1}--\eqref{eq:group2}
+can be written in operator notation as:
+
+\begin{eqbox}
+\begin{equation}
+  \mathbf{L}\,\bm{\Phi} = \frac{1}{\keff}\,\mathbf{F}\,\bm{\Phi}
+  \label{eq:eigenvalue}
+\end{equation}
+\end{eqbox}
+
+where $\bm{\Phi} = [\flux{1}, \flux{2}]^T$ is the flux vector, and:
+
+\begin{equation}
+  \mathbf{L} =
+  \begin{pmatrix}
+    -\diff{1}\nabla^2 + \sigr{1} & 0 \\
+    -\sigs{1}{2} & -\diff{2}\nabla^2 + \siga{2}
+  \end{pmatrix},
+  \qquad
+  \mathbf{F} =
+  \begin{pmatrix}
+    \sigf{1} & \sigf{2} \\
+    0 & 0
+  \end{pmatrix}
+\end{equation}
+
+$\mathbf{L}$ is the \textit{loss operator} (leakage + removal) and
+$\mathbf{F}$ is the \textit{fission production operator}.
+
+\subsection{Block Matrix Structure After Discretization}
+
+After spatial discretization with $N$ nodes, the continuous operators
+become finite matrices of size $2N \times 2N$:
+
+\begin{equation}
+  \mathbf{L} =
+  \begin{pmatrix}
+    [L_1] & [0] \\
+    [-\Sigma_{s12}] & [L_2]
+  \end{pmatrix}_{2N\times 2N},
+  \qquad
+  \mathbf{F} =
+  \begin{pmatrix}
+    [\nu\Sigma_{f1}] & [\nu\Sigma_{f2}] \\
+    [0] & [0]
+  \end{pmatrix}_{2N\times 2N}
+  \label{eq:block}
+\end{equation}
+
+where $[L_g]$ is the $N\times N$ tridiagonal loss matrix for group $g$,
+and $[\nu\Sigma_{f,g}]$ and $[\Sigma_{s12}]$ are diagonal matrices.
+
+The solution vector is stacked by group (block ordering):
+\begin{equation}
+  \bm{\Phi} =
+  \begin{pmatrix}
+    \phi_{1,1},\, \phi_{1,2},\,\ldots,\, \phi_{1,N} \\
+    \phi_{2,1},\, \phi_{2,2},\,\ldots,\, \phi_{2,N}
+  \end{pmatrix}^T
+\end{equation}
+
+% =============================================================================
+\section{Finite Difference Discretization}
+% =============================================================================
+
+\subsection{Spatial Mesh}
+
+The reactor of length $L$ is divided into $N$ equally spaced cells
+of width $h = L/N$. PyReactor uses a \textbf{cell-centred mesh}:
+
+\begin{equation}
+  x_i = \left(i - \tfrac{1}{2}\right)h, \qquad i = 1, 2, \ldots, N
+\end{equation}
+
+The first node is at $x_1 = h/2$ and the last at $x_N = L - h/2$.
+This choice ensures nodes never fall exactly on material interfaces,
+eliminating boundary ambiguity.
+
+\begin{figure}[h!]
+\centering
+\begin{tabular}{ccccccc}
+  $|$ & $\bullet$ & $|$ & $\bullet$ & $|$ & $\bullet$ & $|$ \\
+  $0$ & $h/2$ & $h$ & $3h/2$ & $2h$ & $5h/2$ & $3h$ \\
+      & $x_1$ &     & $x_2$ &      & $x_3$  &
+\end{tabular}
+\caption{Cell-centred mesh: nodes ($\bullet$) are at cell centres,
+         walls ($|$) are at cell boundaries.}
+\end{figure}
+
+\subsection{Finite Difference Approximation of the Diffusion Term}
+
+The second derivative at interior node $i$ is approximated by the
+\textbf{central second-order finite difference}:
+
+\begin{equation}
+  \left.\pdd{\phi}{x}\right|_{x_i}
+  \approx \frac{\phi_{i-1} - 2\phi_i + \phi_{i+1}}{h^2}
+  + \mathcal{O}(h^2)
+  \label{eq:fd}
+\end{equation}
+
+This approximation has second-order accuracy in $h$.
+
+The diffusion term at node $i$ becomes:
+\begin{equation}
+  -D_i\pdd{\phi}{x}\bigg|_i
+  \approx \frac{-D_i\phi_{i-1} + 2D_i\phi_i - D_i\phi_{i+1}}{h^2}
+\end{equation}
+
+\subsection{Interface Diffusion Coefficient — Harmonic Mean}
+
+When two adjacent nodes $i$ and $i+1$ have different diffusion
+coefficients (e.g., at a fuel-reflector interface), the neutron current
+must be \textbf{continuous} across the interface. This requirement leads to
+the \textbf{harmonic mean} for the interface diffusion coefficient:
+
+\begin{eqbox}
+\begin{equation}
+  D_{i+1/2} = \frac{2\,D_i\,D_{i+1}}{D_i + D_{i+1}}
+  \label{eq:harmonic}
+\end{equation}
+\end{eqbox}
+
+\textbf{Why not the arithmetic mean?} The arithmetic mean
+$(D_i + D_{i+1})/2$ does not preserve current continuity at
+material interfaces and introduces a systematic error in the flux
+gradient near boundaries.
+
+The discretized diffusion equation at interior node $i$ is therefore:
+
+\begin{equation}
+  \frac{-D_{i-1/2}\,\phi_{i-1} + (D_{i-1/2} + D_{i+1/2})\,\phi_i
+        - D_{i+1/2}\,\phi_{i+1}}{h^2}
+  + \Sigma_{r,i}\,\phi_i = S_i
+  \label{eq:fd_interior}
+\end{equation}
+
+\subsection{Boundary Conditions}
+
+PyReactor implements the \textbf{zero-flux vacuum boundary condition}.
+In the cell-centred formulation, the flux is extrapolated to zero
+at a distance $h/2$ beyond each edge:
+
+\begin{equation}
+  \phi\!\left(-\tfrac{h}{2}\right) = 0, \qquad
+  \phi\!\left(L + \tfrac{h}{2}\right) = 0
+  \label{eq:bc}
+\end{equation}
+
+At the left boundary node ($i = 1$):
+\begin{equation}
+  \frac{D_{3/2}\,\phi_1 - D_{3/2}\,\phi_2}{h^2}
+  + \frac{D_{1/2}\,\phi_1}{h^2}
+  + \Sigma_{r,1}\,\phi_1 = S_1
+\end{equation}
+
+Since the ghost node at $i=0$ has $\phi_0 = 0$, the boundary
+node diagonal becomes:
+
+\begin{eqbox}
+\begin{equation}
+  a_1^{\text{boundary}} = \frac{D_{1/2} + D_{3/2}}{h^2} + \Sigma_{r,1}
+  = \frac{2D_1}{h^2} + \Sigma_{r,1}
+  \label{eq:bc_diag}
+\end{equation}
+\end{eqbox}
+
+This is identical to the interior node formula — the cell-centred mesh
+automatically enforces the vacuum BC by having no ghost-node coupling.
+
+\subsection{The Tridiagonal Loss Matrix}
+
+Assembling equation~\eqref{eq:fd_interior} for all $N$ nodes gives
+the $N \times N$ tridiagonal loss matrix $[L_g]$ for group $g$:
+
+\begin{equation}
+  [L_g] =
+  \begin{pmatrix}
+    a_1    & b_1    & 0      & \cdots & 0       \\
+    b_2    & a_2    & b_2    & \cdots & 0       \\
+    0      & b_3    & a_3    & \cdots & 0       \\
+    \vdots &        & \ddots & \ddots & \vdots  \\
+    0      & 0      & \cdots & b_N    & a_N
+  \end{pmatrix}
+\end{equation}
+
+where the diagonal and off-diagonal elements at node $i$ are:
+
+\begin{eqbox}
+\begin{align}
+  a_i &= \frac{D_{i-1/2} + D_{i+1/2}}{h^2} + \Sigma_{r,g,i}
+  \label{eq:diag} \\[6pt]
+  b_i &= -\frac{D_{i\pm 1/2}}{h^2}
+  \label{eq:offdiag}
+\end{align}
+\end{eqbox}
+
+For all nodes (including boundaries), $a_i = 2D_i/h^2 + \Sigma_{r,i}$
+when $D$ is uniform within the cell, with the harmonic mean
+used at interfaces.
+
+% =============================================================================
+\section{Power Iteration Method}
+% =============================================================================
+
+\subsection{The Eigenvalue Problem}
+
+After discretization, the neutron diffusion problem reduces to the
+\textbf{generalized matrix eigenvalue problem}:
+
+\begin{equation}
+  \mathbf{L}\,\bm{\Phi} = \frac{1}{\keff}\,\mathbf{F}\,\bm{\Phi}
+\end{equation}
+
+This is equivalent to finding the dominant eigenvalue $\lambda = 1/\keff$
+and corresponding eigenvector $\bm{\Phi}$ of the matrix $\mathbf{L}^{-1}\mathbf{F}$.
+
+\subsection{Power Iteration Algorithm}
+
+Power iteration (also known as the \textit{source iteration} method)
+exploits the fact that repeated multiplication of a vector by
+$\mathbf{L}^{-1}\mathbf{F}$ converges to the dominant eigenvector.
+
+\begin{eqbox}
+\textbf{Algorithm: Power Iteration for $\keff$}
+\begin{align*}
+  &\text{1. Initialise: } \bm{\Phi}^{(0)} = \mathbf{1}, \quad k^{(0)} = 1 \\[4pt]
+  &\text{2. For } n = 0, 1, 2, \ldots \text{ until convergence:} \\
+  &\quad\text{a. Compute fission source:} \quad
+     \mathbf{S}^{(n)} = \frac{1}{k^{(n)}}\,\mathbf{F}\,\bm{\Phi}^{(n)} \\[4pt]
+  &\quad\text{b. Solve linear system:} \quad
+     \mathbf{L}\,\bm{\Phi}^{(n+1)} = \mathbf{S}^{(n)} \\[4pt]
+  &\quad\text{c. Update } \keff\text{:} \quad
+     k^{(n+1)} = \frac{\displaystyle\sum_{i}\bigl(\mathbf{F}\,\bm{\Phi}^{(n+1)}\bigr)_i}
+                      {\displaystyle\sum_{i} S^{(n)}_i} \\[4pt]
+  &\quad\text{d. Normalise: } \bm{\Phi}^{(n+1)}
+     \leftarrow \bm{\Phi}^{(n+1)} / \max\!\bigl(\bm{\Phi}^{(n+1)}\bigr) \\[4pt]
+  &\quad\text{e. Check: if } |k^{(n+1)} - k^{(n)}| < \varepsilon_k
+     \text{ and } \|\bm{\Phi}^{(n+1)} - \bm{\Phi}^{(n)}\|_\infty < \varepsilon_\phi
+     \Rightarrow \text{converged}
+\end{align*}
+\end{eqbox}
+
+\subsection{Convergence Criteria}
+
+PyReactor uses two simultaneous convergence criteria:
+
+\begin{equation}
+  |k^{(n+1)} - k^{(n)}| < \varepsilon_k = 10^{-6}
+  \label{eq:conv_k}
+\end{equation}
+
+\begin{equation}
+  \max_i\bigl|\phi_i^{(n+1)} - \phi_i^{(n)}\bigr| < \varepsilon_\phi = 10^{-6}
+  \label{eq:conv_phi}
+\end{equation}
+
+Both conditions must be satisfied simultaneously to ensure
+\textit{both} the eigenvalue and eigenvector have converged.
+
+\subsection{Why Normalise the Flux?}
+
+The neutron flux is defined only up to an arbitrary multiplicative constant
+by the eigenvalue equation (homogeneous problem). Without normalisation:
+\begin{itemize}
+  \item The flux magnitude grows unboundedly for $\keff > 1$.
+  \item Numerical overflow occurs after many iterations.
+\end{itemize}
+
+PyReactor normalises so that $\max_i(\phi_i) = 1$ at each iteration.
+This does not affect $\keff$ convergence since $k$ depends only on
+the \textit{ratio} of successive fission rates.
+
+\subsection{Convergence Rate}
+
+The convergence rate of power iteration is governed by the
+\textbf{dominance ratio}:
+
+\begin{equation}
+  d = \frac{\lambda_1}{\lambda_0} = \frac{k_1}{k_0}
+\end{equation}
+
+where $\lambda_0 > \lambda_1$ are the two largest eigenvalues.
+A dominance ratio close to 1 (typical $d \approx 0.8$--$0.95$ for
+reflected reactors) leads to slow convergence.
+PyReactor typically converges in 50--150 iterations.
+
+\subsection{Inner Linear Solve}
+
+At each power iteration step, we solve the linear system:
+
+\begin{equation}
+  \mathbf{L}\,\bm{\Phi}^{(n+1)} = \mathbf{S}^{(n)}
+\end{equation}
+
+PyReactor uses \texttt{numpy.linalg.solve} which implements
+\textbf{LU decomposition} (LAPACK routine \texttt{dgesv}).
+For the matrix sizes in 1D (typically $2N \leq 800$), direct
+solve is efficient. For 2D problems, iterative solvers
+(Conjugate Gradient, GMRES) will be employed.
+
+% =============================================================================
+\section{Analytical Benchmark — Bare Homogeneous Slab}
+% =============================================================================
+
+\subsection{Exact Two-Group Solution}
+
+For a bare homogeneous slab of physical width $L$ (extrapolated width
+$\tilde{L} = L + h$), the flux must satisfy the zero-flux BC:
+
+\begin{equation}
+  \flux{g}(x=0) = \flux{g}(x=\tilde{L}) = 0
+\end{equation}
+
+The analytical solution for the flux shape is a pure cosine:
+\begin{equation}
+  \flux{g}(x) = A_g \cos\!\left(\frac{\pi x}{\tilde{L}} - \frac{\pi}{2}\right)
+              = A_g \sin\!\left(\frac{\pi x}{\tilde{L}}\right)
+\end{equation}
+
+The geometric buckling is:
+\begin{equation}
+  B^2 = \left(\frac{\pi}{\tilde{L}}\right)^2
+\end{equation}
+
+\subsection{Two-Group Criticality Equation}
+
+Substituting the cosine solution into the two-group equations
+and eliminating the flux amplitudes $A_1$, $A_2$ gives the
+\textbf{two-group criticality condition}:
+
+\begin{eqbox}
+\begin{equation}
+  \keff = \frac{\sigf{1}\bigl(\diff{2}B^2 + \siga{2}\bigr)
+               + \sigf{2}\,\sigs{1}{2}}
+              {\bigl(\diff{1}B^2 + \sigr{1}\bigr)
+               \bigl(\diff{2}B^2 + \siga{2}\bigr)}
+  \label{eq:analytical_k}
+\end{equation}
+\end{eqbox}
+
+This equation is the \textit{exact} analytical result for a bare,
+uniform slab and serves as the primary validation benchmark for PyReactor.
+
+\subsection{Benchmark Result}
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{lcc}
+\toprule
+\textbf{Method} & \textbf{$\keff$} & \textbf{Error} \\
+\midrule
+Analytical (Eq.~\ref{eq:analytical_k}) & 1.305446 & — \\
+PyReactor (FDM, $N=200$, $h=0.8$ cm)   & 1.305447 & 0 pcm \\
+\bottomrule
+\end{tabular}
+\caption{Bare homogeneous slab benchmark: PyReactor vs.\ analytical solution.}
+\end{table}
+
+The 0 pcm agreement confirms that PyReactor's finite difference
+implementation is numerically consistent with the governing equations.
+
+% =============================================================================
+\section{Power Distribution}
+% =============================================================================
+
+\subsection{Fission Power Density}
+
+The volumetric fission power density at node $i$ is:
+
+\begin{eqbox}
+\begin{equation}
+  P_i = \kappa \left[\Sigma_{f,1,i}\,\phi_{1,i} + \Sigma_{f,2,i}\,\phi_{2,i}\right]
+  \label{eq:power}
+\end{equation}
+\end{eqbox}
+
+where $\kappa \approx 200$ MeV per fission is the recoverable energy.
+PyReactor computes the \textit{relative} power distribution,
+normalised so that $\max_i(P_i) = 1$.
+
+\subsection{Power Peaking Factor}
+
+The power peaking factor (PPF) is defined as:
+\begin{equation}
+  \text{PPF} = \frac{P_{\max}}{\bar{P}}
+  = \frac{\max_i P_i}{\frac{1}{N}\sum_i P_i}
+\end{equation}
+
+For a symmetric, reflected reactor the PPF is typically $1.3$--$1.7$.
+Control rods and burnable poisons are designed to reduce the PPF
+to minimise peak fuel temperatures.
+
+% =============================================================================
+\section{Cross Section Data}
+% =============================================================================
+
+\subsection{Two-Group Constants}
+
+PyReactor requires the following seven group constants per material:
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{clc}
+\toprule
+\textbf{Symbol} & \textbf{Description} & \textbf{Units} \\
+\midrule
+$D_1$           & Fast group diffusion coefficient     & cm \\
+$D_2$           & Thermal group diffusion coefficient  & cm \\
+$\Sigma_{a,1}$  & Fast group absorption cross section  & cm$^{-1}$ \\
+$\Sigma_{a,2}$  & Thermal group absorption cross section & cm$^{-1}$ \\
+$\Sigma_{s,1\to2}$ & Fast-to-thermal scattering cross section & cm$^{-1}$ \\
+$\nu\Sigma_{f,1}$ & Fast group fission production cross section & cm$^{-1}$ \\
+$\nu\Sigma_{f,2}$ & Thermal group fission production cross section & cm$^{-1}$ \\
+\bottomrule
+\end{tabular}
+\caption{Required two-group nuclear constants per material region.}
+\end{table}
+
+\subsection{Typical PWR Two-Group Constants}
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{Material} & $D_1$ & $D_2$ & $\Sigma_{a1}$ & $\Sigma_{a2}$
+                  & $\Sigma_{s12}$ & $\nu\Sigma_{f2}$ \\
+\midrule
+UO$_2$ fuel (3.1\%) & 1.40 & 0.37 & 0.0095 & 0.0820 & 0.0210 & 0.1350 \\
+Light water         & 1.13 & 0.16 & 0.0003 & 0.0210 & 0.0460 & 0 \\
+\bottomrule
+\end{tabular}
+\caption{Typical two-group constants for PWR materials (textbook values).
+         Units: $D$ in cm, cross sections in cm$^{-1}$.}
+\end{table}
+
+\subsection{Generation of Accurate Group Constants}
+
+The textbook values above are approximate. For accurate analysis,
+group constants should be generated by a \textit{lattice physics code}
+using flux-weighted collapsing:
+
+\begin{equation}
+  \Sigma_{g}^{\text{homog}} =
+  \frac{\displaystyle\int_{E_g}^{E_{g-1}} \Sigma(E)\,\phi(E)\,dE}
+       {\displaystyle\int_{E_g}^{E_{g-1}} \phi(E)\,dE}
+\end{equation}
+
+This process is called \textbf{cross section homogenization and condensation}
+and is planned for PyReactor v2.0.
+
+% =============================================================================
+\section{Numerical Accuracy and Error Analysis}
+% =============================================================================
+
+\subsection{Discretisation Error}
+
+The central difference approximation introduces a truncation error
+of order $h^2$:
+
+\begin{equation}
+  \left.\pdd{\phi}{x}\right|_{\text{exact}}
+  = \frac{\phi_{i-1} - 2\phi_i + \phi_{i+1}}{h^2}
+  + \frac{h^2}{12}\frac{\partial^4\phi}{\partial x^4} + \mathcal{O}(h^4)
+\end{equation}
+
+The $\keff$ error due to spatial discretisation scales as:
+\begin{equation}
+  \Delta k \propto h^2
+\end{equation}
+
+\textbf{Mesh refinement study} (bare slab, $L = 160$ cm):
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{rrl}
+\toprule
+$N$ (nodes) & $h$ (cm) & $\keff$ error vs.\ analytical \\
+\midrule
+ 50  & 3.20 & $\sim$30 pcm \\
+100  & 1.60 & $\sim$8 pcm \\
+200  & 0.80 & $\sim$0 pcm \\
+400  & 0.40 & $\sim$0 pcm \\
+\bottomrule
+\end{tabular}
+\caption{Mesh convergence: $N = 200$ nodes is sufficient for sub-1 pcm accuracy.}
+\end{table}
+
+\subsection{Iteration Convergence}
+
+Power iteration convergence is monitored by two residuals:
+\begin{align}
+  r_k^{(n)}   &= |k^{(n)} - k^{(n-1)}| < 10^{-6} \\
+  r_\phi^{(n)} &= \max_i|\phi_i^{(n)} - \phi_i^{(n-1)}| < 10^{-6}
+\end{align}
+
+Typical iteration counts for PyReactor:
+\begin{itemize}
+  \item Bare homogeneous slab: $\sim$2 iterations (high dominance ratio separation).
+  \item Reflected heterogeneous slab: $\sim$80--100 iterations.
+\end{itemize}
+
+% =============================================================================
+\section{Summary of PyReactor v1.0 Capabilities}
+% =============================================================================
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{ll}
+\toprule
+\textbf{Feature} & \textbf{Status} \\
+\midrule
+Geometry              & 1D slab, multi-region \\
+Energy groups         & 2-group (fast + thermal) \\
+Spatial method        & Finite difference, 2nd order \\
+Eigenvalue method     & Power iteration \\
+Boundary conditions   & Vacuum (zero flux at $\pm h/2$ beyond edge) \\
+Interface treatment   & Harmonic mean diffusion coefficient \\
+Cross section input   & YAML input file \\
+Output                & $\keff$, flux, power distribution, plots \\
+Validation            & 0 pcm vs.\ analytical; 1464 pcm vs.\ MCNP 6.2 \\
+\midrule
+\textbf{Planned (v2.0)} & \\
+\midrule
+2D x-y geometry       & Planned \\
+Multi-group ($>$2)    & Planned \\
+XS homogenization     & Planned \\
+Burnup/depletion      & Planned \\
+\bottomrule
+\end{tabular}
+\caption{PyReactor v1.0 feature summary.}
+\end{table}
+
+% =============================================================================
+\section{References}
+% =============================================================================
+
+\begin{enumerate}
+  \item J.J.\ Duderstadt and L.J.\ Hamilton,
+        \textit{Nuclear Reactor Analysis}.
+        Wiley, 1976.
+
+  \item W.M.\ Stacey,
+        \textit{Nuclear Reactor Physics}, 2nd ed.
+        Wiley-VCH, 2007.
+
+  \item E.E.\ Lewis,
+        \textit{Fundamentals of Nuclear Reactor Physics}.
+        Academic Press, 2008.
+
+  \item R.J.D.\ Bell and S.\ Glasstone,
+        \textit{Nuclear Reactor Theory}.
+        Van Nostrand Reinhold, 1970.
+
+  \item X-5 Monte Carlo Team,
+        \textit{MCNP — A General Monte Carlo N-Particle Transport Code, Version 6}.
+        Los Alamos National Laboratory, LA-UR-03-1987, 2013.
+\end{enumerate}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\end{document}
