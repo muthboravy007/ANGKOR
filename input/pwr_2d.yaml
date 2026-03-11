@@ -1,0 +1,66 @@
+# ================================================
+# ANGKOR Input File
+# PWR-Like 2D Slab - Reflector + fuel + Reflector
+# ================================================
+
+# ------ Problem Title ---------------------------
+title: "PWR 2D Slab Benchmark"
+description: "2-group diffusion, rectangular geometry"
+
+# ------ Geometry --------------------------------
+geometry:
+  type: 2D_rectangular
+  domain_x: 100.0
+  domain_y: 100.0
+  nx: 100
+  ny: 100
+
+# ------ Region (list of rectangles) -------------
+regions:
+  - name: left_reflector
+    x_min:  0.0
+    x_max:  20.0
+    y_min:  0.0
+    y_max:  100.0
+    material: water
+
+  - name: fuel
+    x_min:  20.0
+    x_max:  80.0
+    y_min:  0.0
+    y_max:  100.0
+    material: uo2_fuel
+  
+  - name: right_reflector
+    x_min:  80.0
+    x_max:  100.0
+    y_min:  0.0
+    y_max:  100.0
+    material: water
+
+# ----- Material (2-group cross section) ---------
+materials:
+  uo2_fuel:
+    D1: 1.40
+    D2: 0.37
+    sigma_a1: 0.0095
+    sigma_a2: 0.0820
+    sigma_s12:  0.0210
+    nu_sigma_f1:  0.0060
+    nu_sigma_f2:  0.1350
+  
+  water:
+    D1: 1.13
+    D2: 0.16
+    sigma_a1: 0.0003
+    sigma_a2: 0.0210
+    sigma_s12:  0.0460
+    nu_sigma_f1:  0.0
+    nu_sigma_f2:  0.0
+
+# ----- Solve setting ----------------------------
+solver:
+  max_iterations: 1000
+  convergence:  1.0e-6
+  output_flux:  true
+  output_power: true
