@@ -1,7 +1,7 @@
 # =============================================
-# ANGKOR Input File — PWR 2D Slab 4-Group
+# ANGKOR Input File — IAEA 2D PWR Benchmark
 # =============================================
-title: "PWR 2D Slab - 4 Groups"
+title: "IAEA 2D PWR Benchmark (1977)"
 
 geometry:
   type: 2D_rectangular
