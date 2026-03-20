@@ -171,7 +171,7 @@ Cambodia joins the world in advancing peaceful nuclear science.
 ## Author
 
 **MUTH Boravy**  
-Nuclear Engineering Student  
+PhD. in Nuclear Engineering  
 Institute of Technology of Cambodia (ITC)  
 Phnom Penh, Cambodia 🇰🇭
 
